@@ -4,7 +4,8 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
-var encrypt = require("mongoose-encryption");
+const encrypt = require("mongoose-encryption");
+const md5 = require("md5");
 
 const app = express();
 
@@ -23,7 +24,7 @@ const userSchema=new mongoose.Schema({
 });
 
 //const secret = "NobodyCanGuessThisString";
-userSchema.plugin(encrypt, { secret: process.env.SECRET, encryptedFields: ["password"]});
+//userSchema.plugin(encrypt, { secret: process.env.SECRET, encryptedFields: ["password"]});
 
 const User = new mongoose.model("User",userSchema);
 
@@ -41,7 +42,7 @@ app.get("/login", function(req,res){
 });
 
 app.post("/register",function(req,res){
-   User.create({ email: req.body.username, password: req.body.password}, function(err,doc){
+   User.create({ email: req.body.username, password: md5(req.body.password)}, function(err,doc){
      if(!err){
        //console.log(doc);
        //renderira se samo ako se uspješno logira
@@ -56,7 +57,7 @@ app.post("/login", function(req,res){
   User.findOne({email: req.body.username},function(err,doc){
     console.log(doc);
     if (!err){
-      if (doc.password===req.body.password){
+      if (doc.password===md5(req.body.password)){
         res.render("secrets");
       }
        else{
