@@ -5,7 +5,8 @@ const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
 const encrypt = require("mongoose-encryption");
-const md5 = require("md5");
+const bcrypt = require('bcrypt');
+
 
 const app = express();
 
@@ -23,9 +24,6 @@ const userSchema=new mongoose.Schema({
   password: String
 });
 
-//const secret = "NobodyCanGuessThisString";
-//userSchema.plugin(encrypt, { secret: process.env.SECRET, encryptedFields: ["password"]});
-
 const User = new mongoose.model("User",userSchema);
 
 
@@ -42,31 +40,34 @@ app.get("/login", function(req,res){
 });
 
 app.post("/register",function(req,res){
-   User.create({ email: req.body.username, password: md5(req.body.password)}, function(err,doc){
-     if(!err){
-       //console.log(doc);
-       //renderira se samo ako se uspješno logira
-       res.render("secrets");
-     } else{
-       res.render(err);
-     }
-   });
+
+  bcrypt.hash(req.body.password, 10, function(err, hash) {
+      User.create({ email: req.body.username, password: hash}, function(err,doc){
+        if(!err){
+          //console.log(doc);
+          //renderira se samo ako se uspješno logira
+          res.render("secrets");
+        } else{
+          res.render(err);
+        }
+      });
+  });
 });
 
 app.post("/login", function(req,res){
   User.findOne({email: req.body.username},function(err,doc){
     console.log(doc);
-    if (!err){
-      if (doc.password===md5(req.body.password)){
-        res.render("secrets");
-      }
-       else{
-         res.render(err);
-       }
+    if (err){
+      res.render(err);
+    } else{
+      bcrypt.compare(req.body.password, doc.password, function(err, result) {
+        if (result){
+          res.render("secrets");
+        }
+      });
     }
   });
-})
-
+});
 
 app.listen(3000, function() {
   console.log("Server started on port 3000");
